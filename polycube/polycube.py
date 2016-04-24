@@ -23,27 +23,34 @@ class Piece:
         if len(self.oringal_cubes_set) != len(piece_list):
             raise ValueError("There is some duplicate value entered")
         self.num_list_to_coord_vector(piece_list)
+        print(piece_list)
 
     def num_list_to_coord_vector(self, num_list):
         for coord in num_list:
             x = coord % 5
             y = coord % 25 // 5
             z = coord // 25
-            cube = np.matrix([[x], [y], [z]])
+            cube = [[x],[y],[z]]
+            #cube = np.matrix([[x], [y], [z]])
             self.cubes.append(cube)
+            print(cube)
 
     def __add_piece_list_to_set(self, piece_list):
         for piece in piece_list:
             self.oringal_cubes_set.add(piece)
 
+    def __rotate(self, rotation_matrix):
+        for cube in self.cubes:
+            cube = rotation_matrix.dot(cube)
+
     def x_rotate(self):
-        self.cubes = [x_rot_matrix.dot(cube) for cube in self.cubes]
+        self.__rotate(x_rot_matrix)
 
     def y_rotate(self):
-        self.cubes = [y_rot_matrix.dot(cube) for cube in self.cubes]
+        self.__rotate(y_rot_matrix)
 
     def z_rotate(self):
-        self.cubes = [z_rot_matrix.dot(cube) for cube in self.cubes]
+        self.__rotate(z_rot_matrix)
 
     def fit_initial_config(self):
         """From an XYZ vector, shift the position until all pieces lie in bounds"""
@@ -57,9 +64,19 @@ class Piece:
         """Shift piece throughout cube space until all possible fittings are found"""
         pass
 
-    def vector_to_num_list(self):
+    def vector_to_num_list(self, vector):
         """ Convert from an xyz coordinate into a number list for use in the algorithm"""
-        pass
+        x = vector.item(0)
+        y = vector.item(1)
+        z = vector.item(2)
+
+        location = z * 25 + y * 5 + x
+        return location
+    def __repr__(self):
+        return str(self.cubes)
+    def __str__(self):
+        return str(self.cubes)
+
 
 
 def validate_pos_num_string(line_input):
@@ -106,12 +123,13 @@ def main():
     piece_num = validate_pos_num_string(piece_num_input)
     if piece_num is None:
         raise ValueError('Incorrect Input type. Must be a positive int')
-    for piece_order_num in piece_num:
+    for piece_order_num in range(piece_num):
         new_piece = enter_piece_input(piece_num)
         while new_piece is None:
             new_piece = enter_piece_input(piece_num)
         piece_list.append(new_piece)
-    print(piece_list)
+    for piece in piece_list:
+        print(piece)
 
 if __name__ == '__main__':
     main()
