@@ -94,7 +94,6 @@ class Piece:
         """From an XYZ vector, shift the position until all pieces lie in bounds"""
         pass
 
-
     def fit_all_configs(self, rotations):
 
         unique_positions = set()
@@ -118,9 +117,9 @@ class Piece:
         return location
 
     def sort_piece(self, piece):
-        piece.sorted(key=lambda k: k[2])
-        piece.sorted(key=lambda k: k[1])
-        piece.sorted(key=lambda k: k[0])
+        piece.sort(key=lambda k: k[2])
+        piece.sort(key=lambda k: k[1])
+        piece.sort(key=lambda k: k[0])
         return piece
 
     def __repr__(self):
