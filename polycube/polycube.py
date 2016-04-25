@@ -27,7 +27,7 @@ class Piece:
             being a coordinate system to identify a piece+ position/orientation and the value
             being the cubes it occupies """
 
-        self.num_list_to_coord_vector(piece_list)
+        self.cubes = self.num_list_to_coord_vector(piece_list)
         print(piece_list)
 
     def generate(self, piece):
@@ -38,13 +38,16 @@ class Piece:
         return configs
 
     def num_list_to_coord_vector(self, num_list):
+        piece = list()
         for coord in num_list:
             x = coord % 5
             y = coord % 25 // 5
             z = coord // 25
             cube = [x, y, z]
-            self.cubes.append(cube)
+            piece.append(cube)
+            #self.cubes.append(cube)
             print(cube)
+        return piece
 
     def __add_piece_list_to_set(self, piece_list):
         for piece in piece_list:
@@ -85,10 +88,38 @@ class Piece:
                 rotations.append(self.z_rotate(face, i))
         return rotations
 
-    def fit_to_origin(self):
+    def fit_to_origin(self, piece):
         """This should fit a piece until the origin cube lies at 0,0,0. Not all piece should
             have to be in bounds"""
+        piece = self.sort_piece(piece)
+        x_shift_d = -piece[0][0]
+        y_shift_d = -piece[0][1]
+        z_shift_d = -piece[0][2]
+        print(x_shift_d)
+        print(y_shift_d)
+        print(z_shift_d)
+        piece = self.shift_x(piece, x_shift_d)
+        piece = self.shift_y(piece, y_shift_d)
+        piece = self.shift_z(piece, z_shift_d)
+        return piece
         pass
+
+    def shift_x(self, piece, n):
+        for cube in piece:
+            cube[0] = cube[0] + n
+        return piece
+        pass
+
+    def shift_y(self, piece, n):
+        for cube in piece:
+            cube[1] = cube[1] + n
+        return piece
+        pass
+
+    def shift_z(self, piece, n):
+        for cube in piece:
+            cube[2] = cube[2] + n
+        return piece
 
     def fit_initial_config(self):
         """From an XYZ vector, shift the position until all pieces lie in bounds"""
@@ -117,10 +148,13 @@ class Piece:
         return location
 
     def sort_piece(self, piece):
-        piece.sort(key=lambda k: k[2])
-        piece.sort(key=lambda k: k[1])
-        piece.sort(key=lambda k: k[0])
-        return piece
+        piece = [self.vector_to_num_list(x) for x in piece]
+        piece.sort()
+        return self.num_list_to_coord_vector(piece)
+        #piece.sort(key=lambda k: k[2])
+        #piece.sort(key=lambda k: k[1])
+        #piece.sort(key=lambda k: k[0])
+        #return piece
 
     def __repr__(self):
         return str(self.cubes)
