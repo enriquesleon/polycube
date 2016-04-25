@@ -28,14 +28,12 @@ class Piece:
             being the cubes it occupies """
 
         self.cubes = self.num_list_to_coord_vector(piece_list)
-        print(piece_list)
-
+        self.rotations = self.generate(self.cubes)
     def generate(self, piece):
         piece = self.fit_to_origin(piece)
         faces = self.get_piece_faces(piece)
         rotations = self.get_rotations(faces)
-        configs = self.fit_all_configs(rotations)
-        return configs
+        return rotations
 
     def num_list_to_coord_vector(self, num_list):
         piece = list()
@@ -45,8 +43,7 @@ class Piece:
             z = coord // 25
             cube = [x, y, z]
             piece.append(cube)
-            #self.cubes.append(cube)
-            print(cube)
+            # self.cubes.append(cube)
         return piece
 
     def __add_piece_list_to_set(self, piece_list):
@@ -72,6 +69,7 @@ class Piece:
         return self.__rotate(piece, z_rot_matrix, n)
 
     def get_piece_faces(self, piece):
+        piece = self.fit_to_origin(piece)
         face_0 = piece[:]
         face_1 = self.x_rotate(face_0, 1)
         face_2 = self.x_rotate(face_1, 1)
@@ -83,9 +81,12 @@ class Piece:
     def get_rotations(self, faces):
         rotations = list()
         for face in faces:
-            rotations.append(face)
+            fitted_face = self.fit_initial_config(face)
+            rotations.append(fitted_face)
             for i in range(1, 4):
-                rotations.append(self.z_rotate(face, i))
+                rotation = self.z_rotate(face, i)
+                rotation = self.fit_initial_config(rotation)
+                rotations.append(rotation)
         return rotations
 
     def fit_to_origin(self, piece):
@@ -95,9 +96,6 @@ class Piece:
         x_shift_d = -piece[0][0]
         y_shift_d = -piece[0][1]
         z_shift_d = -piece[0][2]
-        print(x_shift_d)
-        print(y_shift_d)
-        print(z_shift_d)
         piece = self.shift_x(piece, x_shift_d)
         piece = self.shift_y(piece, y_shift_d)
         piece = self.shift_z(piece, z_shift_d)
@@ -121,8 +119,18 @@ class Piece:
             cube[2] = cube[2] + n
         return piece
 
-    def fit_initial_config(self):
-        """From an XYZ vector, shift the position until all pieces lie in bounds"""
+    def fit_initial_config(self, piece):
+
+        piece.sort(key=lambda k: k[0])
+        x_shift_d = -piece[0][0]
+        piece.sort(key=lambda k: k[1])
+        y_shift_d = -piece[0][1]
+        piece.sort(key=lambda k: k[2])
+        z_shift_d = -piece[0][2]
+        piece = self.shift_x(piece, x_shift_d)
+        piece = self.shift_y(piece, y_shift_d)
+        piece = self.shift_z(piece, z_shift_d)
+        return self.sort_piece(piece)
         pass
 
     def fit_all_configs(self, rotations):
@@ -154,7 +162,7 @@ class Piece:
         #piece.sort(key=lambda k: k[2])
         #piece.sort(key=lambda k: k[1])
         #piece.sort(key=lambda k: k[0])
-        #return piece
+        # return piece
 
     def __repr__(self):
         return str(self.cubes)
@@ -226,7 +234,8 @@ def main():
             new_piece = enter_piece_input(piece_num)
         piece_list.append(new_piece)
     for piece in piece_list:
-        print(piece)
+        for rotation in piece.rotations:
+            print(rotation)
 
 if __name__ == '__main__':
     main()
