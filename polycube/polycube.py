@@ -1,6 +1,8 @@
 import numpy as np
+import copy
+from collections import namedtuple
 
-
+cube_size = 5
 x_rot_matrix = np.matrix([[1, 0, 0],
                           [0, 0, -1],
                           [0, 1, 0]])
@@ -13,27 +15,26 @@ z_rot_matrix = np.matrix([[0, -1, 0],
                           [1, 0, 0],
                           [0, 0, 1]])
 
+Rotation = namedtuple('Rotation', 'name piece')
+Face = namedtuple('Face', 'name piece')
+Fit = namedtuple('Fit','name piece')
+
 
 class Piece:
     def __init__(self, piece_list, piece_id):
         self.cubes = list()
-        self.piece_faces = list()
-        self.rows = dict()
-        self.unique_positions = set()
         self.original_cubes = piece_list
-        self.piece_id = piece_id
-
-        """The unique positions dictionary should contain unique rows with the key
-            being a coordinate system to identify a piece+ position/orientation and the value
-            being the cubes it occupies """
-
+        self.piece_id = "P_" + str(piece_id)
         self.cubes = self.num_list_to_coord_vector(piece_list)
-        self.rotations = self.generate(self.cubes)
-    def generate(self, piece):
-        piece = self.fit_to_origin(piece)
-        faces = self.get_piece_faces(piece)
-        rotations = self.get_rotations(faces)
-        return rotations
+        self.generate()
+        #self.rotations = self.generate(self.cubes, self.piece_id)
+
+    def generate(self):
+        self.fitted_piece = self.fit_to_origin(self.cubes)
+        self.faces = self.get_piece_faces(self.fitted_piece, self.piece_id)
+        self.rotations = self.get_rotations(self.faces)
+        self.piece_dict = self.fit_all_configs(self.rotations)
+        return self.rotations
 
     def num_list_to_coord_vector(self, num_list):
         piece = list()
@@ -43,8 +44,17 @@ class Piece:
             z = coord // 25
             cube = [x, y, z]
             piece.append(cube)
-            # self.cubes.append(cube)
         return piece
+
+    def vector_to_num_list(self, piece):
+        converted_piece = list()
+        for cube in piece:
+            x = cube[0]
+            y = cube[1]
+            z = cube[2]
+            location = z * 25 + y * 5 + x
+            converted_piece.append(location)
+        return converted_piece
 
     def __add_piece_list_to_set(self, piece_list):
         for piece in piece_list:
@@ -55,9 +65,6 @@ class Piece:
         for i in range(n):
             vectors = [rotation_matrix.dot(vector) for vector in vectors]
         return [vector.T.tolist()[0] for vector in vectors]
-        # self.cubes = [
-            # rotation_matrix.dot(np.matrix(cube).T).T.tolist()[0] for cube in
-            # self.cubes]
 
     def x_rotate(self, piece, n):
         return self.__rotate(piece, x_rot_matrix, n)
@@ -68,30 +75,37 @@ class Piece:
     def z_rotate(self, piece, n):
         return self.__rotate(piece, z_rot_matrix, n)
 
-    def get_piece_faces(self, piece):
-        piece = self.fit_to_origin(piece)
-        face_0 = piece[:]
-        face_1 = self.x_rotate(face_0, 1)
-        face_2 = self.x_rotate(face_1, 1)
-        face_3 = self.x_rotate(face_2, 1)
-        face_4 = self.y_rotate(face_0, 1)
-        face_5 = self.y_rotate(face_0, 3)
+    def get_piece_faces(self, piece, name=None):
+        if name is None:
+            name = "p_0"
+        face_0 = Face(name + 'face_0', piece[:])
+        face_1 = Face(name + 'face_1', self.x_rotate(face_0.piece, 1))
+        face_2 = Face(name + 'face_2', self.x_rotate(face_1.piece, 1))
+        face_3 = Face(name + 'face_3', self.x_rotate(face_2.piece, 1))
+        face_4 = Face(name + 'face_4', self.y_rotate(face_0.piece, 1))
+        face_5 = Face(name + 'face_5', self.y_rotate(face_0.piece, 3))
         return [face_0, face_1, face_2, face_3, face_4, face_5]
 
     def get_rotations(self, faces):
         rotations = list()
+        unique_fits = set()
         for face in faces:
-            fitted_face = self.fit_initial_config(face)
-            rotations.append(fitted_face)
+            fitted_face = self.fit_initial_config(face.piece)
+            fitted_id = self.unique_string(fitted_face)
+            if fitted_id not in unique_fits:
+                unique_fits.add(fitted_id)
+                rotations.append(Rotation(face.name + 'rot_0', fitted_face))
             for i in range(1, 4):
-                rotation = self.z_rotate(face, i)
+                rotation = self.z_rotate(face.piece, i)
                 rotation = self.fit_initial_config(rotation)
-                rotations.append(rotation)
+                string_id = self.unique_string(rotation)
+                if string_id not in unique_fits:
+                    unique_fits.add(string_id)
+                    rotations.append(
+                        Rotation(face.name + 'rot_' + str(i), rotation))
         return rotations
 
     def fit_to_origin(self, piece):
-        """This should fit a piece until the origin cube lies at 0,0,0. Not all piece should
-            have to be in bounds"""
         piece = self.sort_piece(piece)
         x_shift_d = -piece[0][0]
         y_shift_d = -piece[0][1]
@@ -100,24 +114,26 @@ class Piece:
         piece = self.shift_y(piece, y_shift_d)
         piece = self.shift_z(piece, z_shift_d)
         return piece
-        pass
 
     def shift_x(self, piece, n):
-        for cube in piece:
-            cube[0] = cube[0] + n
-        return piece
-        pass
+        shifted = [[cube[0]+n,cube[1],cube[2]] for cube in piece]
+        #for cube in piece:
+        #    cube[0] = cube[0] + n
+        return shifted
 
     def shift_y(self, piece, n):
-        for cube in piece:
-            cube[1] = cube[1] + n
-        return piece
-        pass
+        shifted = [[cube[0],cube[1]+n,cube[2]] for cube in piece]
+        
+        #for cube in piece:
+        #    cube[1] = cube[1] + n
+        return shifted
 
     def shift_z(self, piece, n):
-        for cube in piece:
-            cube[2] = cube[2] + n
-        return piece
+        shifted = [[cube[0],cube[1],cube[2]+n] for cube in piece]
+        
+        #for cube in piece:
+        #    cube[2] = cube[2] + n
+        return shifted
 
     def fit_initial_config(self, piece):
 
@@ -131,38 +147,54 @@ class Piece:
         piece = self.shift_y(piece, y_shift_d)
         piece = self.shift_z(piece, z_shift_d)
         return self.sort_piece(piece)
-        pass
 
     def fit_all_configs(self, rotations):
 
-        unique_positions = set()
-        unique_fit_rows = dict()
-        initial_rotation_fits = [
-            self.fit_initial_config(rotation) for rotation in rotations]
-        """Essentially this should get the initial fit for all rotations.
-            Then it should try to fit every piece into the cube.
-            If it fit, try to add it the table. If some other rotation occupies the same space,
-            Dont add it. We should also added some unique id string and append to a dictionary that 
-            gets returned"""
-        pass
+        fits = list()
+        for rotation in rotations:
+            x_fits = self.get_x_fits(rotation)
+            for xf in x_fits:
+                y_fits = self.get_y_fits(xf)
+                for yf in y_fits:
+                    z_fits = self.get_z_fits(yf)
+                    fits.extend(z_fits)
+        return fits
+        #x_fits = [self.get_x_fits(rotation) for rotation in rotations]
+        #for fit in x_fits:
+        #    for f in fit:
+        #        print(f.piece)
+        #    return x_fits
 
-    def vector_to_num_list(self, vector):
-        """ Convert from an xyz coordinate into a number list for use in the algorithm"""
-        x = vector[0]
-        y = vector[1]
-        z = vector[2]
 
-        location = z * 25 + y * 5 + x
-        return location
+    def get_x_fits(self,rotation):
+        x_fits = list()
+        max_x_shift=5-sorted(rotation.piece,key=lambda k: k[0], reverse=True)[0][0]
+        #print(max_x_shift)
+        for x in range(max_x_shift):
+            print(self.shift_x(rotation.piece,x))
+            x_fits.append(Fit(rotation.name + "X{}".format(x),self.shift_x(rotation.piece,x)))
+        return x_fits
+    def get_y_fits(self,rotation):
+        y_fits =list()
+        max_y_shift=5-sorted(rotation.piece,key=lambda k: k[1], reverse=True)[0][1]
+
+        for y in range(max_y_shift):
+            y_fits.append(Fit(rotation.name + "Y{}".format(y),self.shift_y(rotation.piece,y)))
+        return y_fits
+    def get_z_fits(self,rotation):
+        z_fits =list()
+        max_z_shift=5-sorted(rotation.piece,key=lambda k: k[2], reverse=True)[0][2]
+
+        for z in range(max_z_shift):
+            z_fits.append(Fit(rotation.name + "Z{}".format(z),self.vector_to_num_list(self.shift_z(rotation.piece,z))))
+        return z_fits 
+
+
 
     def sort_piece(self, piece):
-        piece = [self.vector_to_num_list(x) for x in piece]
+        piece = self.vector_to_num_list(piece)
         piece.sort()
         return self.num_list_to_coord_vector(piece)
-        #piece.sort(key=lambda k: k[2])
-        #piece.sort(key=lambda k: k[1])
-        #piece.sort(key=lambda k: k[0])
-        # return piece
 
     def __repr__(self):
         return str(self.cubes)
@@ -172,7 +204,7 @@ class Piece:
 
     def unique_string(self, cubes):
         s = ""
-        num_list = [self.vector_to_num_list(cube) for cube in cubes]
+        num_list = self.vector_to_num_list(cubes)
         num_list.sort()
         for num in num_list:
             s = s + str(num) + ','
@@ -188,6 +220,12 @@ def validate_pos_num_string(line_input):
         return None
     else:
         return num
+
+
+# def get_x_fittings(self, rotation):
+#    piece = copy.deep(rotation)
+#
+# x    pass
 
 
 def enter_piece_input(piece_num):
@@ -234,8 +272,15 @@ def main():
             new_piece = enter_piece_input(piece_num)
         piece_list.append(new_piece)
     for piece in piece_list:
-        for rotation in piece.rotations:
-            print(rotation)
+        for fit in piece.piece_dict:
+            print (fit.name +":"+ str(fit.piece))
+        #for rotation in piece.rotations:
+            #print(rotation.piece)
+        #    pass
+
+          #for k, v in piece.piece_dict.items():
+            #print(k + str(v))
+
 
 if __name__ == '__main__':
     main()
