@@ -34,7 +34,6 @@ class Piece:
         self.faces = self.get_piece_faces(self.fitted_piece, self.piece_id)
         self.rotations = self.get_rotations(self.faces)
         self.piece_dict = self.fit_all_configs(self.rotations)
-        return self.rotations
 
     def num_list_to_coord_vector(self, num_list):
         piece = list()
@@ -171,7 +170,7 @@ class Piece:
         max_x_shift=5-sorted(rotation.piece,key=lambda k: k[0], reverse=True)[0][0]
         #print(max_x_shift)
         for x in range(max_x_shift):
-            print(self.shift_x(rotation.piece,x))
+            #print(self.shift_x(rotation.piece,x))
             x_fits.append(Fit(rotation.name + "X{}".format(x),self.shift_x(rotation.piece,x)))
         return x_fits
     def get_y_fits(self,rotation):
@@ -275,7 +274,7 @@ def main():
         for fit in piece.piece_dict:
             print (fit.name +":"+ str(fit.piece))
         #for rotation in piece.rotations:
-            #print(rotation.piece)
+            #print(str(rotation.piece) + rotation.name)
         #    pass
 
           #for k, v in piece.piece_dict.items():
