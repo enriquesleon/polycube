@@ -2,7 +2,8 @@ import numpy as np
 import copy
 from collections import namedtuple
 
-cube_size = 5
+cube_size = 3
+layer_size = cube_size *cube_size
 x_rot_matrix = np.matrix([[1, 0, 0],
                           [0, 0, -1],
                           [0, 1, 0]])
@@ -38,9 +39,9 @@ class Piece:
     def num_list_to_coord_vector(self, num_list):
         piece = list()
         for coord in num_list:
-            x = coord % 5
-            y = coord % 25 // 5
-            z = coord // 25
+            x = coord % cube_size
+            y = coord % (layer_size) // cube_size
+            z = coord // (layer_size)
             cube = [x, y, z]
             piece.append(cube)
         return piece
@@ -51,7 +52,7 @@ class Piece:
             x = cube[0]
             y = cube[1]
             z = cube[2]
-            location = z * 25 + y * 5 + x
+            location = z * layer_size + y * cube_size + x
             converted_piece.append(location)
         return converted_piece
 
@@ -158,16 +159,11 @@ class Piece:
                     z_fits = self.get_z_fits(yf)
                     fits.extend(z_fits)
         return fits
-        #x_fits = [self.get_x_fits(rotation) for rotation in rotations]
-        #for fit in x_fits:
-        #    for f in fit:
-        #        print(f.piece)
-        #    return x_fits
 
 
     def get_x_fits(self,rotation):
         x_fits = list()
-        max_x_shift=5-sorted(rotation.piece,key=lambda k: k[0], reverse=True)[0][0]
+        max_x_shift=cube_size-sorted(rotation.piece,key=lambda k: k[0], reverse=True)[0][0]
         #print(max_x_shift)
         for x in range(max_x_shift):
             #print(self.shift_x(rotation.piece,x))
@@ -175,14 +171,14 @@ class Piece:
         return x_fits
     def get_y_fits(self,rotation):
         y_fits =list()
-        max_y_shift=5-sorted(rotation.piece,key=lambda k: k[1], reverse=True)[0][1]
+        max_y_shift=cube_size-sorted(rotation.piece,key=lambda k: k[1], reverse=True)[0][1]
 
         for y in range(max_y_shift):
             y_fits.append(Fit(rotation.name + "Y{}".format(y),self.shift_y(rotation.piece,y)))
         return y_fits
     def get_z_fits(self,rotation):
         z_fits =list()
-        max_z_shift=5-sorted(rotation.piece,key=lambda k: k[2], reverse=True)[0][2]
+        max_z_shift=cube_size-sorted(rotation.piece,key=lambda k: k[2], reverse=True)[0][2]
 
         for z in range(max_z_shift):
             z_fits.append(Fit(rotation.name + "Z{}".format(z),self.vector_to_num_list(self.shift_z(rotation.piece,z))))
@@ -219,12 +215,6 @@ def validate_pos_num_string(line_input):
         return None
     else:
         return num
-
-
-# def get_x_fittings(self, rotation):
-#    piece = copy.deep(rotation)
-#
-# x    pass
 
 
 def enter_piece_input(piece_num):
