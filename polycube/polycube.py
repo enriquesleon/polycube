@@ -26,7 +26,7 @@ class Piece:
         self.cubes = list()
         self.original_cubes = piece_list
         self.piece_id = "P_" + str(piece_id)
-        self.cubes = self.num_list_to_coord_vector(piece_list)
+        self.cubes = num_list_to_coord_vector(piece_list)
         self.generate()
         #self.rotations = self.generate(self.cubes, self.piece_id)
 
@@ -181,15 +181,15 @@ class Piece:
         max_z_shift=cube_size-sorted(rotation.piece,key=lambda k: k[2], reverse=True)[0][2]
 
         for z in range(max_z_shift):
-            z_fits.append(Fit(rotation.name + "Z{}".format(z),self.vector_to_num_list(self.shift_z(rotation.piece,z))))
+            z_fits.append(Fit(rotation.name + "Z{}".format(z),vector_to_num_list(self.shift_z(rotation.piece,z))))
         return z_fits 
 
 
 
     def sort_piece(self, piece):
-        piece = self.vector_to_num_list(piece)
+        piece = vector_to_num_list(piece)
         piece.sort()
-        return self.num_list_to_coord_vector(piece)
+        return num_list_to_coord_vector(piece)
 
     def __repr__(self):
         return str(self.cubes)
@@ -199,7 +199,7 @@ class Piece:
 
     def unique_string(self, cubes):
         s = ""
-        num_list = self.vector_to_num_list(cubes)
+        num_list = vector_to_num_list(cubes)
         num_list.sort()
         for num in num_list:
             s = s + str(num) + ','
@@ -248,6 +248,24 @@ def validate_piece_input_string(piece_input, piece_num):
     new_piece = Piece(piece_int_list, piece_num)
     return new_piece
 
+def vector_to_num_list(piece):
+        converted_piece = list()
+        for cube in piece:
+            x = cube[0]
+            y = cube[1]
+            z = cube[2]
+            location = z * layer_size + y * cube_size + x
+            converted_piece.append(location)
+        return converted_piece
+def num_list_to_coord_vector(num_list):
+        piece = list()
+        for coord in num_list:
+            x = coord % cube_size
+            y = coord % (layer_size) // cube_size
+            z = coord // (layer_size)
+            cube = [x, y, z]
+            piece.append(cube)
+        return piece
 
 def main():
     piece_list = list()
