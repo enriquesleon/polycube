@@ -1,9 +1,10 @@
 import numpy as np
 import copy
+import algx
 from collections import namedtuple
 
 cube_size = 3
-layer_size = cube_size *cube_size
+layer_size = cube_size * cube_size
 x_rot_matrix = np.matrix([[1, 0, 0],
                           [0, 0, -1],
                           [0, 1, 0]])
@@ -18,11 +19,12 @@ z_rot_matrix = np.matrix([[0, -1, 0],
 
 Rotation = namedtuple('Rotation', 'name piece')
 Face = namedtuple('Face', 'name piece')
-Fit = namedtuple('Fit','name piece')
+Fit = namedtuple('Fit', 'name piece')
 
 
 class Piece:
     def __init__(self, piece_list, piece_id):
+        # print(piece_id)
         self.cubes = list()
         self.original_cubes = piece_list
         self.piece_id = "P_" + str(piece_id)
@@ -77,7 +79,7 @@ class Piece:
 
     def get_piece_faces(self, piece, name=None):
         if name is None:
-            name = "p_0"
+            name = "P_0"
         face_0 = Face(name + 'face_0', piece[:])
         face_1 = Face(name + 'face_1', self.x_rotate(face_0.piece, 1))
         face_2 = Face(name + 'face_2', self.x_rotate(face_1.piece, 1))
@@ -116,23 +118,15 @@ class Piece:
         return piece
 
     def shift_x(self, piece, n):
-        shifted = [[cube[0]+n,cube[1],cube[2]] for cube in piece]
-        #for cube in piece:
-        #    cube[0] = cube[0] + n
+        shifted = [[cube[0] + n, cube[1], cube[2]] for cube in piece]
         return shifted
 
     def shift_y(self, piece, n):
-        shifted = [[cube[0],cube[1]+n,cube[2]] for cube in piece]
-        
-        #for cube in piece:
-        #    cube[1] = cube[1] + n
+        shifted = [[cube[0], cube[1] + n, cube[2]] for cube in piece]
         return shifted
 
     def shift_z(self, piece, n):
-        shifted = [[cube[0],cube[1],cube[2]+n] for cube in piece]
-        
-        #for cube in piece:
-        #    cube[2] = cube[2] + n
+        shifted = [[cube[0], cube[1], cube[2] + n] for cube in piece]
         return shifted
 
     def fit_initial_config(self, piece):
@@ -160,31 +154,40 @@ class Piece:
                     fits.extend(z_fits)
         return fits
 
-
-    def get_x_fits(self,rotation):
+    def get_x_fits(self, rotation):
         x_fits = list()
-        max_x_shift=cube_size-sorted(rotation.piece,key=lambda k: k[0], reverse=True)[0][0]
-        #print(max_x_shift)
+        max_x_shift = cube_size - \
+            sorted(rotation.piece, key=lambda k: k[0], reverse=True)[0][0]
+        # print(max_x_shift)
         for x in range(max_x_shift):
-            #print(self.shift_x(rotation.piece,x))
-            x_fits.append(Fit(rotation.name + "X{}".format(x),self.shift_x(rotation.piece,x)))
+            # print(self.shift_x(rotation.piece,x))
+            x_fits.append(
+                Fit(rotation.name + "X{}".format(x), self.shift_x(rotation.piece, x)))
         return x_fits
-    def get_y_fits(self,rotation):
-        y_fits =list()
-        max_y_shift=cube_size-sorted(rotation.piece,key=lambda k: k[1], reverse=True)[0][1]
+
+    def get_y_fits(self, rotation):
+        y_fits = list()
+        max_y_shift = cube_size - \
+            sorted(rotation.piece, key=lambda k: k[1], reverse=True)[0][1]
 
         for y in range(max_y_shift):
-            y_fits.append(Fit(rotation.name + "Y{}".format(y),self.shift_y(rotation.piece,y)))
+            y_fits.append(
+                Fit(rotation.name + "Y{}".format(y), self.shift_y(rotation.piece, y)))
         return y_fits
-    def get_z_fits(self,rotation):
-        z_fits =list()
-        max_z_shift=cube_size-sorted(rotation.piece,key=lambda k: k[2], reverse=True)[0][2]
+
+    def get_z_fits(self, rotation):
+        z_fits = list()
+        max_z_shift = cube_size - \
+            sorted(rotation.piece, key=lambda k: k[2], reverse=True)[0][2]
 
         for z in range(max_z_shift):
-            z_fits.append(Fit(rotation.name + "Z{}".format(z),vector_to_num_list(self.shift_z(rotation.piece,z))))
-        return z_fits 
+            shifted = vector_to_num_list(self.shift_z(rotation.piece, z))
+            shifted.append(self.piece_id)
+            z_fits.append(Fit(rotation.name + "Z{}".format(z),shifted))
 
-
+            #z_fits.append(Fit(rotation.name + "Z{}".format(z),
+             #                 vector_to_num_list(self.shift_z(rotation.piece, z))))
+        return z_fits
 
     def sort_piece(self, piece):
         piece = vector_to_num_list(piece)
@@ -248,44 +251,105 @@ def validate_piece_input_string(piece_input, piece_num):
     new_piece = Piece(piece_int_list, piece_num)
     return new_piece
 
+
 def vector_to_num_list(piece):
-        converted_piece = list()
-        for cube in piece:
-            x = cube[0]
-            y = cube[1]
-            z = cube[2]
-            location = z * layer_size + y * cube_size + x
-            converted_piece.append(location)
-        return converted_piece
+    converted_piece = list()
+    for cube in piece:
+        x = cube[0]
+        y = cube[1]
+        z = cube[2]
+        location = z * layer_size + y * cube_size + x
+        converted_piece.append(location)
+    return converted_piece
+
+
 def num_list_to_coord_vector(num_list):
-        piece = list()
-        for coord in num_list:
-            x = coord % cube_size
-            y = coord % (layer_size) // cube_size
-            z = coord // (layer_size)
-            cube = [x, y, z]
-            piece.append(cube)
-        return piece
+    piece = list()
+    for coord in num_list:
+        x = coord % cube_size
+        y = coord % (layer_size) // cube_size
+        z = coord // (layer_size)
+        cube = [x, y, z]
+        piece.append(cube)
+    return piece
+
+
+def build_x_table(Y_table,num_pieces):
+    X = dict()
+    s = "P_"
+    print(s)
+    p_list = list()
+    for i in range(num_pieces):
+        p_list.append(s+str(i))
+    for i in range(cube_size**cube_size):
+        X[i] = None
+    for i in p_list:
+        X[i] = None
+    X = {j: set() for j in X}
+
+    for i in Y_table:
+        for j in Y_table[i]:
+            X[j].add(i)
+    return X
+
 
 def main():
     piece_list = list()
-    piece_num_input = input("How many pieces?")
-    piece_num = validate_pos_num_string(piece_num_input)
-    if piece_num is None:
-        raise ValueError('Incorrect Input type. Must be a positive int')
-    for piece_order_num in range(piece_num):
-        new_piece = enter_piece_input(piece_num)
-        while new_piece is None:
-            new_piece = enter_piece_input(piece_num)
-        piece_list.append(new_piece)
+    #piece_num_input = input("How many pieces?")
+    #piece_num = validate_pos_num_string(piece_num_input)
+    # if piece_num is None:
+    #    raise ValueError('Incorrect Input type. Must be a positive int')
+    #piece_list.append(Piece([i for i in range(9)], 0))
+    #piece_list.append(Piece([i for i in range(9, 18)], 1))
+    #piece_list.append(Piece([i for i in range(18, 27)], 2))
+    piece_list.append(Piece([0,1,2,3],0))
+    piece_list.append(Piece([0,1,4],1))
+
+    piece_list.append(Piece([0,1,2,4],2))
+    piece_list.append(Piece([0,3,4,7],3))
+    piece_list.append(Piece([0,1,3,9],4))
+    piece_list.append(Piece([0,1,10,13],5))
+    piece_list.append(Piece([0,1,4,14],6))
+
+
+
+
+    # for n in range(piece_num):
+    #    new_piece = enter_piece_input(n)
+    #    while new_piece is None:
+    #        new_piece = enter_piece_input(piece_num)
+    #    piece_list.append(new_piece)
+    #for piece in piece_list:
+    #    for fit in piece.piece_dict:
+    #        print(fit.name+":"+str(fit.piece))
+    Y = dict()
     for piece in piece_list:
         for fit in piece.piece_dict:
             print (fit.name +":"+ str(fit.piece))
-        #for rotation in piece.rotations:
+            Y[fit.name] = fit.piece
+    X = build_x_table(Y,7)
+    # for K,V in Y.items():
+    #    print(str(K)+":"+str(V))
+    # for K,V in X.items():
+    #    print(str(K)+":"+str(V))
+
+    print(X)
+    print(Y)
+    sol = list()
+    
+    #print("hi")
+    sol = algx.solve(X, Y, [])
+    #print(sol)
+    for solution in sol:
+        print('__________SOLUTION___________')
+        print(solution)
+     #print(sol)
+
+        # for rotation in piece.rotations:
             #print(str(rotation.piece) + rotation.name)
         #    pass
 
-          #for k, v in piece.piece_dict.items():
+          # for k, v in piece.piece_dict.items():
             #print(k + str(v))
 
 
