@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 import algx
+from parseInputFile import parseInputFile
 from collections import namedtuple
 
 cube_size = 3
@@ -302,16 +303,19 @@ def main():
     #piece_list.append(Piece([i for i in range(9)], 0))
     #piece_list.append(Piece([i for i in range(9, 18)], 1))
     #piece_list.append(Piece([i for i in range(18, 27)], 2))
-    piece_list.append(Piece([0,1,2,3],0))
-    piece_list.append(Piece([0,1,4],1))
+    #piece_list.append(Piece([0,1,2,3],0))
+    #piece_list.append(Piece([0,1,4],1))
 
-    piece_list.append(Piece([0,1,2,4],2))
-    piece_list.append(Piece([0,3,4,7],3))
-    piece_list.append(Piece([0,1,3,9],4))
-    piece_list.append(Piece([0,1,10,13],5))
-    piece_list.append(Piece([0,1,4,14],6))
+    #piece_list.append(Piece([0,1,2,4],2))
+    #piece_list.append(Piece([0,3,4,7],3))
+    #piece_list.append(Piece([0,1,3,9],4))
+    #piece_list.append(Piece([0,1,10,13],5))
+    #piece_list.append(Piece([0,1,4,13],6))
 
-
+    file_pieces = parseInputFile('testfile')
+    fit_out_file = open('fits.txt','w')
+    for p in file_pieces:
+        piece_list.append(Piece(vector_to_num_list(p[0]),p[1]))
 
 
     # for n in range(piece_num):
@@ -326,8 +330,12 @@ def main():
     for piece in piece_list:
         for fit in piece.piece_dict:
             print (fit.name +":"+ str(fit.piece))
+            #fit_out_file.write(fit.name + ":" + str(fit.piece) + '\n')
             Y[fit.name] = fit.piece
-    X = build_x_table(Y,7)
+        for rotation in piece.rotations:
+            fit_out_file.write(rotation.name + ":" + str(vector_to_num_list(rotation.piece)) + '\n')
+    fit_out_file.close()
+    X = build_x_table(Y,len(file_pieces))
     # for K,V in Y.items():
     #    print(str(K)+":"+str(V))
     # for K,V in X.items():
@@ -342,7 +350,9 @@ def main():
     #print(sol)
     for solution in sol:
         print('__________SOLUTION___________')
-        print(solution)
+        for p in solution:
+            print(str(Y[p]) +" : "+ p)
+            #print(p)
      #print(sol)
 
         # for rotation in piece.rotations:
